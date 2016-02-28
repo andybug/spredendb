@@ -3,16 +3,18 @@ package main
 import (
 	"io/ioutil"
 	"log"
-	"fmt"
+	"regexp"
+	"strconv"
 )
 
 type Season struct {
-	year int16
+	year int
 }
 
 type Sport struct {
-	name string
-	path string
+	name    string
+	path    string
+	seasons []*Season
 }
 
 func listSports(root string) (sports []*Sport) {
@@ -22,7 +24,6 @@ func listSports(root string) (sports []*Sport) {
 	}
 
 	for _, f := range files {
-		log.Println("file " + f.Name())
 		if f.IsDir() {
 			sport := new(Sport)
 			sport.name = f.Name()
@@ -34,13 +35,34 @@ func listSports(root string) (sports []*Sport) {
 	return sports
 }
 
+func listSeasons(sport *Sport) (seasons []*Season) {
+	files, err := ioutil.ReadDir(sport.path)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, f := range files {
+		match, _ := regexp.MatchString("^\\d{4}$", f.Name())
+		if f.IsDir() && match {
+			season := new(Season)
+			season.year, _ = strconv.Atoi(f.Name())
+		}
+	}
+
+	return nil
+}
+
 func createDatabase(root string, outPath string) error {
 	log.Println("Creating database with root at " + root)
 	log.Println("Outputing to " + outPath)
 	sports := listSports(root)
 
 	for _, sport := range sports {
-		fmt.Printf("sport %s %s\n", sport.name, sport.path)
+		log.Println("Processing sport " + sport.name)
+		sport.seasons = listSeasons(sport)
+		for _, season := range sport.seasons {
+			log.Printf("Processing year %d\n", season.year)
+		}
 	}
 
 	return nil
