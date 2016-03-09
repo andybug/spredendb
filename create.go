@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"log"
 	"path"
@@ -14,13 +15,17 @@ type Team struct {
 	name string
 }
 
+type TeamScore struct {
+	Uuid  string `json:"uuid"`
+	Score int    `json:"score"`
+}
+
 type Game struct {
-	date       string
-	uuid       string
-	home_uuid  string
-	home_score int
-	away_uuid  string
-	away_score int
+	Date    string    `json:"date"`
+	Uuid    string    `json:"uuid"`
+	Home    TeamScore `json:"home"`
+	Away    TeamScore `json:"away"`
+	Neutral bool      `json:"neutral"`
 }
 
 type Round struct {
@@ -41,6 +46,27 @@ type Sport struct {
 	seasons []*Season
 }
 
+func (round *Round) readGames() error {
+	log.Println("Reading " + round.path)
+
+	file, err := ioutil.ReadFile(round.path)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	games := make([]Game, 0)
+	err = json.Unmarshal(file, &games)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, game := range games {
+		log.Println(game.Date + "  " + game.Uuid + " " + strconv.FormatBool(game.Neutral))
+	}
+
+	return nil
+}
+
 func (season *Season) readRounds() error {
 	files, err := ioutil.ReadDir(season.path)
 	if err != nil {
@@ -52,7 +78,7 @@ func (season *Season) readRounds() error {
 		if match {
 			round := new(Round)
 			round.path = season.path + "/" + f.Name()
-			//round.games = readGames(round)
+			round.readGames()
 			season.rounds = append(season.rounds, round)
 		}
 	}
